@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import { Note } from '@/types/note';
 import { Plus, FileText, Search, Calendar } from 'react-feather';
-import Logo from './Logo';
 
 interface SidebarProps {
   notes: Note[];
@@ -17,7 +16,7 @@ interface GroupedNotes {
 }
 
 const getMonthName = (month: number): string => {
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+  const months = ['January', 'February', 'March', 'April', 'May', 'June',
                  'July', 'August', 'September', 'October', 'November', 'December'];
   return months[month];
 };
@@ -28,7 +27,7 @@ const Sidebar = ({ notes, selectedNoteId, onNoteSelect, onNewNote }: SidebarProp
 
   // Group notes by date
   const groupedNotes = useMemo(() => {
-    const filtered = notes.filter(note => 
+    const filtered = notes.filter(note =>
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.content.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -36,7 +35,7 @@ const Sidebar = ({ notes, selectedNoteId, onNoteSelect, onNewNote }: SidebarProp
     return filtered.reduce((groups: GroupedNotes, note) => {
       const date = new Date(note.createdAt);
       const month = `${getMonthName(date.getMonth())} ${date.getFullYear()}`;
-      
+
       if (!groups[month]) {
         groups[month] = [];
       }
@@ -64,7 +63,7 @@ const Sidebar = ({ notes, selectedNoteId, onNoteSelect, onNewNote }: SidebarProp
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
 
-    return date.toLocaleDateString(undefined, { 
+    return date.toLocaleDateString(undefined, {
       month: 'short',
       day: 'numeric',
       year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
@@ -73,7 +72,6 @@ const Sidebar = ({ notes, selectedNoteId, onNoteSelect, onNewNote }: SidebarProp
 
   return (
     <div className="flex flex-col h-full">
-      <Logo />
       <div className="flex justify-between items-center px-4 py-3 border-y border-[var(--border-light)]">
         <h2 className="text-lg font-medium text-gray-800">My Notes</h2>
         <button
@@ -119,7 +117,7 @@ const Sidebar = ({ notes, selectedNoteId, onNoteSelect, onNewNote }: SidebarProp
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </button>
-            
+
             {isExpanded[month] && (
               <div className="py-1 space-y-0.5">
                 {monthNotes.map((note) => (

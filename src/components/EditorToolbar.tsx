@@ -132,7 +132,7 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
     <div className="border-b border-[var(--border)] bg-gray-50/50">
       <div className="w-full max-w-[95%] xl:max-w-[90%] mx-auto">
         <div className="flex flex-wrap items-center gap-3 py-2">
-          <div className="flex items-center gap-2 pr-4 border-r border-gray-200">
+          <div className="flex items-center gap-2 ml-6 pr-4 border-r border-gray-200">
             <Type size={18} className="text-gray-400 shrink-0" />
             <ToolbarSelect
               value={editor.getAttributes('textStyle').fontFamily || ''}

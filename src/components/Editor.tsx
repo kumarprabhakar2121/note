@@ -158,7 +158,7 @@ const Editor = ({ note, onUpdate, onDelete, isDirty }: EditorProps) => {
   return (
     <div className="h-full flex flex-col bg-white">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-[var(--border-light)] bg-gray-50/30">
-        <div className="flex items-center gap-4 p-4 sm:p-6">
+        <div className="flex items-center ml-20 gap-4 p-4 sm:p-6">
           {isEditingTitle ? (
             <input
               ref={titleInputRef}

@@ -11,7 +11,7 @@ const Logo = () => {
   return (
     <button
       onClick={handleClick}
-      className="flex items-center gap-2 p-4 hover:text-[var(--primary)] transition-colors duration-200 group"
+      className="flex items-center gap-2 p-1 hover:text-[var(--primary)] transition-colors duration-200 group"
     >
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-lg group-hover:shadow-md transition-all duration-200">
         <Edit3 className="w-5 h-5 text-white" />
