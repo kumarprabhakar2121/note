@@ -3,19 +3,314 @@
 @tailwind utilities;
 
 :root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-hover: #3b82f6;
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --editor-bg: #ffffff;
+  --sidebar: #f8fafc;
+  --border: #e2e8f0;
+  --border-light: #f1f5f9;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
 }
 
 body {
-  color: var(--foreground);
+  color: var(--text-primary);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Editor Styles */
+.ProseMirror {
+  min-height: 500px;
+  max-height: calc(100vh - 200px);
+  height: 100%;
+  padding: 2.5rem;
+  transition: all 0.2s ease;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.ProseMirror::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ProseMirror::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ProseMirror::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: 3px;
+}
+
+.ProseMirror:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+@media (min-width: 768px) {
+  .ProseMirror {
+    min-height: 500px;
+    max-height: calc(100vh - 220px);
+    padding: 3rem;
+  }
+}
+
+.ProseMirror p {
+  margin: 1em 0;
+  line-height: 1.75;
+  color: var(--text-primary);
+}
+
+.ProseMirror > * + * {
+  margin-top: 1em;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--text-secondary);
+  content: attr(data-placeholder);
+  float: left;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Prose Styles */
+.prose {
+  font-size: 1.125rem;
+  line-height: 1.8;
+  color: var(--text-primary);
+  max-width: none !important;
+  width: 100%;
+}
+
+.prose > * {
+  max-width: none !important;
+}
+
+@media (min-width: 640px) {
+  .prose {
+    font-size: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .prose {
+    font-size: 1.375rem;
+  }
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.prose h1 {
+  font-size: 2.5rem;
+  margin: 2.5rem 0 1.5rem;
+}
+
+.prose h2 {
+  font-size: 2rem;
+  margin: 2rem 0 1rem;
+}
+
+.prose h3 {
+  font-size: 1.5rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.prose p {
+  margin: 1.5rem 0;
+}
+
+.prose ul,
+.prose ol {
+  margin: 1.5rem 0;
+  padding-left: 2rem;
+}
+
+.prose li {
+  margin: 0.75rem 0;
+  padding-left: 0.5rem;
+}
+
+.prose blockquote {
+  margin: 2rem 0;
+  padding: 1rem 1.5rem;
+  border-left: 4px solid var(--primary);
+  background: #f8fafc;
+  color: var(--text-secondary);
+  font-style: italic;
+  font-size: 1.125rem;
+}
+
+.prose code {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9em;
+  padding: 0.2em 0.4em;
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+/* Code Block Styles */
+.ProseMirror pre {
+  background: #0d1117;
+  border-radius: 0.75rem;
+  color: #e6edf3;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  overflow-x: auto;
+  font-size: 1rem;
+  border: 1px solid var(--border-light);
+}
+
+.ProseMirror pre code {
+  background: transparent;
+  color: inherit;
+  font-size: 0.9em;
+  padding: 0;
+}
+
+/* Table Styles */
+.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid var(--border);
+  padding: 0.75rem;
+}
+
+.ProseMirror th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+/* Task List Styles */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  margin: 0.5rem 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+  margin-right: 0.5rem;
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+/* Image Styles */
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1.5rem 0;
+}
+
+/* Blockquote Styles */
+.ProseMirror blockquote {
+  border-left: 4px solid #e2e8f0;
+  margin: 1rem 0;
+  padding-left: 1rem;
+  font-style: italic;
+  color: #64748b;
+}
+
+/* List Styles */
+.ProseMirror ul,
+.ProseMirror ol {
+  padding-left: 1.5rem;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+/* Link Styles */
+.ProseMirror a {
+  color: #2563eb;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.ProseMirror a:hover {
+  color: #1d4ed8;
+}
+
+/* Highlight Styles */
+.ProseMirror mark {
+  background-color: #fef9c3;
+  border-radius: 0.125rem;
+  padding: 0.125rem 0;
+}
+
+/* Superscript and Subscript */
+.ProseMirror sup {
+  font-size: 0.75em;
+  vertical-align: super;
+}
+
+.ProseMirror sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+
+/* Language Label for Code Blocks */
+.ProseMirror pre::before {
+  content: attr(data-language);
+  position: absolute;
+  top: 0.25rem;
+  right: 0.5rem;
+  font-size: 0.75rem;
+  color: #8b949e;
+  text-transform: uppercase;
+}
+
+/* Font Family Styles */
+.ProseMirror [style*="font-family: Inter"] { font-family: 'Inter', sans-serif; }
+.ProseMirror [style*="font-family: Roboto"] { font-family: 'Roboto', sans-serif; }
+.ProseMirror [style*="font-family: Open Sans"] { font-family: 'Open Sans', sans-serif; }
+.ProseMirror [style*="font-family: Lato"] { font-family: 'Lato', sans-serif; }
+.ProseMirror [style*="font-family: Poppins"] { font-family: 'Poppins', sans-serif; }
+.ProseMirror [style*="font-family: Playfair Display"] { font-family: 'Playfair Display', serif; }
+.ProseMirror [style*="font-family: Merriweather"] { font-family: 'Merriweather', serif; }
+.ProseMirror [style*="font-family: Source Code Pro"] { font-family: 'Source Code Pro', monospace; }
+.ProseMirror [style*="font-family: Fira Code"] { font-family: 'Fira Code', monospace; }
