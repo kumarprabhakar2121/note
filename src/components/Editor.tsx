@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import TextStyle from '@tiptap/extension-text-style';
+import { Extension } from '@tiptap/core';
 import Highlight from '@tiptap/extension-highlight';
 import Typography from '@tiptap/extension-typography';
 import TextAlign from '@tiptap/extension-text-align';
@@ -8,14 +10,90 @@ import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
-import FontFamily from '@tiptap/extension-font-family';
+import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
 import { common, createLowlight } from 'lowlight';
-import EditorToolbar from './EditorToolbar';
+import FontFamily from '@tiptap/extension-font-family';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Underline from '@tiptap/extension-underline';
 import { ArrowUp, Eye, Edit2, AlertCircle } from 'lucide-react';
 import { ErrorBoundary } from './ErrorBoundary';
+import EditorToolbar from './EditorToolbar';
+
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    fontSize: {
+      /**
+       * Set the font size
+       */
+      setFontSize: (size: string) => ReturnType;
+      /**
+       * Unset the font size
+       */
+      unsetFontSize: () => ReturnType;
+    };
+  }
+}
 
 const lowlight = createLowlight(common);
+
+// Custom extension for font size
+const FontSize = Extension.create({
+  name: 'fontSize',
+
+  addOptions() {
+    return {
+      types: ['textStyle'],
+      defaultSize: '16px',
+    };
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['textStyle'],
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize,
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {};
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              };
+            },
+          },
+        },
+      },
+    ];
+  },
+
+  addCommands() {
+    return {
+      setFontSize:
+        (fontSize: string) =>
+        ({ chain, state }) => {
+          return chain()
+            .setMark('textStyle', { fontSize })
+            .run();
+        },
+      unsetFontSize:
+        () =>
+        ({ chain }) => {
+          return chain()
+            .setMark('textStyle', { fontSize: null })
+            .removeEmptyTextStyle()
+            .run();
+        },
+    };
+  },
+});
 
 interface EditorProps {
   note: {
@@ -56,6 +134,11 @@ const Editor = ({ note, onUpdate, onDelete, isDirty, onChange }: EditorProps) =>
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
+  const handleScroll = useCallback((event: Event) => {
+    const target = event.target as HTMLDivElement;
+    setShowScrollTop(target.scrollTop > 100);
+  }, []);
+
   const handleEditorError = (error: Error) => {
     console.error('Editor error:', error);
     setEditorError(error);
@@ -92,9 +175,20 @@ const Editor = ({ note, onUpdate, onDelete, isDirty, onChange }: EditorProps) =>
         lowlight,
         defaultLanguage: 'plaintext',
       }),
-      FontFamily.configure({
+      TextStyle.configure(),
+      FontFamily,
+      FontSize.configure({
         types: ['textStyle'],
       }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      TaskList,
+      TaskItem,
+      Underline,
     ],
     content: note.content,
     editorProps: {
@@ -115,7 +209,7 @@ const Editor = ({ note, onUpdate, onDelete, isDirty, onChange }: EditorProps) =>
 
   const resetEditor = useCallback(() => {
     if (!editor) return;
-    
+
     try {
       setEditorError(null);
       editor.commands.clearContent();
@@ -141,16 +235,12 @@ const Editor = ({ note, onUpdate, onDelete, isDirty, onChange }: EditorProps) =>
 
   // Handle scroll behavior
   useEffect(() => {
-    const handleScroll = () => {
-      if (editorContainerRef.current) {
-        setShowScrollTop(editorContainerRef.current.scrollTop > 100);
-      }
-    };
-
     const container = editorContainerRef.current;
-    container?.addEventListener('scroll', handleScroll);
-    return () => container?.removeEventListener('scroll', handleScroll);
-  }, []);
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
 
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -281,7 +371,6 @@ const Editor = ({ note, onUpdate, onDelete, isDirty, onChange }: EditorProps) =>
         {isEditMode && <EditorToolbar editor={editor} />}
         <div
           ref={editorContainerRef}
-          onScroll={(e) => handleScroll(e)}
           className="flex-1 overflow-y-auto bg-gray-50/50 w-full relative p-4 sm:p-6"
         >
           <div className="h-full w-full max-w-[95%] xl:max-w-[90%] mx-auto bg-white rounded-xl shadow-sm">
