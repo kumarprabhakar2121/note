@@ -19,7 +19,7 @@ import FontFamily from '@tiptap/extension-font-family';
 import { common, createLowlight } from 'lowlight'
 import EditorToolbar from './EditorToolbar';
 import { useEffect, useState, useRef } from 'react';
-import { ArrowUp } from 'react-feather';
+import { ArrowUp, Eye, Edit2 } from 'react-feather';
 
 const lowlight = createLowlight(common);
 
@@ -31,44 +31,12 @@ interface EditorProps {
 }
 
 const Editor = ({ note, onUpdate, onDelete, isDirty }: EditorProps) => {
-  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(true);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(note?.title || '');
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setTitleValue(note?.title || '');
-  }, [note?.title]);
-
-  const handleTitleClick = () => {
-    setIsEditingTitle(true);
-    setTimeout(() => {
-      titleInputRef.current?.focus();
-      titleInputRef.current?.select();
-    }, 0);
-  };
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitleValue(e.target.value);
-    onUpdate({ ...note, title: e.target.value });
-  };
-
-  const handleTitleBlur = () => {
-    setIsEditingTitle(false);
-    if (titleValue.trim() === '') {
-      setTitleValue(note?.title || '');
-    }
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      setIsEditingTitle(false);
-    } else if (e.key === 'Escape') {
-      setTitleValue(note?.title || '');
-      setIsEditingTitle(false);
-    }
-  };
 
   const editor = useEditor({
     extensions: [
@@ -116,6 +84,12 @@ const Editor = ({ note, onUpdate, onDelete, isDirty }: EditorProps) => {
       }),
     ],
     content: note.content,
+    editable: isEditMode,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose-lg lg:prose-xl mx-auto focus:outline-none',
+      },
+    },
     onUpdate: ({ editor }) => {
       const content = editor.getHTML();
       onUpdate({ ...note, content });
@@ -127,6 +101,45 @@ const Editor = ({ note, onUpdate, onDelete, isDirty }: EditorProps) => {
       editor.commands.setContent(note.content);
     }
   }, [note.content, editor]);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitleValue(e.target.value);
+    onUpdate({ ...note, title: e.target.value });
+  };
+
+  const handleTitleBlur = () => {
+    setIsEditingTitle(false);
+    if (titleValue.trim() === '') {
+      setTitleValue(note?.title || '');
+    }
+  };
+
+  const handleTitleClick = () => {
+    if (isEditMode) {
+      setIsEditingTitle(true);
+      setTimeout(() => {
+        titleInputRef.current?.focus();
+        titleInputRef.current?.select();
+      }, 0);
+    }
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleTitleBlur();
+    }
+  };
+
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this note?')) {
+      onDelete();
+    }
+  };
+
+  const toggleEditMode = () => {
+    setIsEditMode(!isEditMode);
+    editor?.setEditable(!isEditMode);
+  };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollTop = e.currentTarget.scrollTop;
@@ -154,13 +167,13 @@ const Editor = ({ note, onUpdate, onDelete, isDirty }: EditorProps) => {
               onChange={handleTitleChange}
               onBlur={handleTitleBlur}
               onKeyDown={handleTitleKeyDown}
-              className="text-xl font-semibold text-gray-800 bg-white border border-[var(--primary)] rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-opacity-20"
+              className="text-xl font-semibold text-gray-800 bg-white border border-[var(--primary)] rounded px-2 py-1 focus:outline-none"
               placeholder="Note title"
             />
           ) : (
             <h2
               onClick={handleTitleClick}
-              className="text-xl font-semibold text-gray-800 cursor-pointer hover:text-[var(--primary)] transition-colors"
+              className={`text-xl font-semibold text-gray-800 ${isEditMode ? 'cursor-pointer hover:text-[var(--primary)]' : 'cursor-default'} transition-colors`}
             >
               {note?.title || 'Untitled'}
             </h2>
@@ -174,7 +187,24 @@ const Editor = ({ note, onUpdate, onDelete, isDirty }: EditorProps) => {
         </div>
         <div className="flex items-center gap-3 px-4 sm:px-6 pb-4 sm:pb-0 w-full sm:w-auto">
           <button
-            onClick={onDelete}
+            onClick={toggleEditMode}
+            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 border border-[var(--border-light)]"
+            title={isEditMode ? "Switch to preview mode" : "Switch to edit mode"}
+          >
+            {isEditMode ? (
+              <>
+                <Eye className="w-4 h-4" />
+                <span>Preview</span>
+              </>
+            ) : (
+              <>
+                <Edit2 className="w-4 h-4" />
+                <span>Edit</span>
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleDelete}
             className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full sm:w-auto border border-red-200"
           >
             Delete Note
@@ -192,16 +222,16 @@ const Editor = ({ note, onUpdate, onDelete, isDirty }: EditorProps) => {
           </button>
         </div>
       </div>
-      <EditorToolbar editor={editor} />
+      {isEditMode && <EditorToolbar editor={editor} />}
       <div
         ref={editorContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto bg-white w-full relative"
+        className="flex-1 overflow-y-auto bg-gray-50/50 w-full relative p-4 sm:p-6"
       >
-        <div className="h-full w-full max-w-[95%] xl:max-w-[90%] mx-auto py-8">
+        <div className="h-full w-full max-w-[95%] xl:max-w-[90%] mx-auto bg-white rounded-xl shadow-sm">
           <EditorContent
             editor={editor}
-            className="min-h-[500px] w-full prose prose-base sm:prose-lg lg:prose-xl prose-slate prose-headings:font-display rounded-lg border border-[var(--border-light)] transition-all duration-200 focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary)] focus-within:ring-opacity-20"
+            className="min-h-[500px] w-full prose prose-base sm:prose-lg lg:prose-xl prose-slate prose-headings:font-display rounded-lg border border-[var(--border-light)] transition-all duration-200"
           />
         </div>
         {showScrollTop && (
