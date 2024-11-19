@@ -1,10 +1,21 @@
+'use client';
+
 import { useRouter } from 'next/navigation';
 import { Edit3 } from 'react-feather';
 
-const Logo = () => {
+interface LogoProps {
+  onHomeClick?: () => void;
+}
+
+const Logo = ({ onHomeClick }: LogoProps) => {
   const router = useRouter();
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onHomeClick) {
+      onHomeClick();
+    }
+    localStorage.removeItem('selectedNoteId');
     router.push('/');
   };
 
