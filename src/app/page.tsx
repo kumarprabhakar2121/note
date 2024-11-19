@@ -1,87 +1,139 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Editor from '@/components/Editor';
+import { useState, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
+import Editor from '@/components/Editor';
 import Welcome from '@/components/Welcome';
-import { useNoteStore } from '@/store/noteStore';
+import Loader from '@/components/Loader';
+import { Note } from '@/types/note';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 export default function Home() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const noteId = searchParams.get('note');
+  const [mounted, setMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [notes, setNotes] = useState<Note[]>([]);
+  
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const noteId = searchParams.get('note');
+  
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
 
-  const {
-    notes,
-    selectedNoteId,
-    setSelectedNoteId,
-    createNote,
-    deleteNote,
-    updateNote,
-    isDirty,
-    initializeNotes,
-  } = useNoteStore();
-
+  // Handle initial load of notes
   useEffect(() => {
-    initializeNotes();
-    setIsLoading(false);
-  }, [initializeNotes]);
+    const savedNotes = localStorage.getItem('notes');
+    if (savedNotes) {
+      setNotes(JSON.parse(savedNotes));
+    }
+    setMounted(true);
+  }, []);
 
+  // Handle note restoration
   useEffect(() => {
-    if (noteId) {
-      if (notes.some(note => note.id === noteId)) {
-        setSelectedNoteId(noteId);
+    if (!mounted) return;
+    
+    if (!noteId) {
+      const savedNoteId = localStorage.getItem('selectedNoteId');
+      if (savedNoteId && notes.some(note => note.id === savedNoteId)) {
+        router.push(`/?note=${savedNoteId}`);
       } else {
+        setIsLoading(false);
+      }
+    }
+  }, [mounted, notes, noteId, router]);
+
+  // Handle note selection
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (noteId) {
+      const note = notes.find(n => n.id === noteId);
+      if (note) {
+        setSelectedNote(note);
+        localStorage.setItem('selectedNoteId', noteId);
+      } else {
+        localStorage.removeItem('selectedNoteId');
         router.push('/');
       }
+      setIsLoading(false);
     } else {
-      setSelectedNoteId(null);
+      setSelectedNote(null);
+      setIsLoading(false);
     }
-  }, [noteId, notes, setSelectedNoteId, router]);
+  }, [mounted, noteId, notes]);
 
-  const handleNoteSelect = (id: string) => {
-    router.push(`/?note=${id}`);
-  };
-
-  const handleNewNote = () => {
-    const newNote = createNote();
+  const createNewNote = () => {
+    const newNote: Note = {
+      id: crypto.randomUUID(),
+      title: 'Untitled Note',
+      content: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    const updatedNotes = [newNote, ...notes];
+    setNotes(updatedNotes);
+    localStorage.setItem('notes', JSON.stringify(updatedNotes));
     router.push(`/?note=${newNote.id}`);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--primary)]"></div>
-      </div>
+  const updateNote = (updatedNote: Note) => {
+    const updatedNotes = notes.map(note =>
+      note.id === updatedNote.id
+        ? { ...updatedNote, updatedAt: new Date().toISOString() }
+        : note
     );
-  }
+    setNotes(updatedNotes);
+    localStorage.setItem('notes', JSON.stringify(updatedNotes));
+    setIsDirty(false);
+  };
+
+  const deleteNote = () => {
+    if (!selectedNote) return;
+    
+    const updatedNotes = notes.filter(note => note.id !== selectedNote.id);
+    setNotes(updatedNotes);
+    localStorage.setItem('notes', JSON.stringify(updatedNotes));
+    router.push('/');
+  };
+
+  const handleNoteSelect = (id: string) => {
+    if (isDirty) {
+      const confirmed = window.confirm('You have unsaved changes. Are you sure you want to switch notes?');
+      if (!confirmed) return;
+    }
+    router.push(`/?note=${id}`);
+  };
 
   return (
-    <div className="relative">
-      <main className="flex flex-col md:flex-row h-screen">
-        <div className="w-full md:w-80 border-r border-[var(--border)]">
-          <Sidebar
-            notes={notes}
-            selectedNoteId={selectedNoteId}
-            onNoteSelect={handleNoteSelect}
-            onNewNote={handleNewNote}
+    <div className="flex h-screen bg-gray-50">
+      <div className="w-80 border-r border-[var(--border)] bg-white">
+        <Sidebar
+          notes={notes}
+          selectedNoteId={selectedNote?.id || null}
+          onNoteSelect={handleNoteSelect}
+          onNewNote={createNewNote}
+        />
+      </div>
+      <div className="flex-1">
+        {isLoading ? (
+          <Loader />
+        ) : selectedNote ? (
+          <Editor
+            note={selectedNote}
+            onUpdate={(note) => {
+              updateNote(note);
+              setIsDirty(false);
+            }}
+            onDelete={deleteNote}
+            isDirty={isDirty}
+            onChange={() => setIsDirty(true)}
           />
-        </div>
-        <div className="flex-1 min-w-0">
-          {selectedNoteId ? (
-            <Editor
-              note={notes.find((n) => n.id === selectedNoteId)!}
-              onUpdate={updateNote}
-              onDelete={deleteNote}
-              isDirty={isDirty}
-            />
-          ) : (
-            <Welcome onCreateNote={handleNewNote} />
-          )}
-        </div>
-      </main>
+        ) : (
+          <Welcome onCreateNote={createNewNote} />
+        )}
+      </div>
     </div>
   );
 }

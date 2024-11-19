@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Note } from '@/types/note';
 import { Plus, FileText, Search, Calendar } from 'react-feather';
 
@@ -15,60 +15,84 @@ interface GroupedNotes {
   [key: string]: Note[];
 }
 
-const getMonthName = (month: number): string => {
-  const months = ['January', 'February', 'March', 'April', 'May', 'June',
-                 'July', 'August', 'September', 'October', 'November', 'December'];
-  return months[month];
+// Move constants outside component to prevent recreating on each render
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+] as const;
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const month = MONTHS[date.getMonth()];
+  const year = date.getFullYear();
+  return `${month} ${year}`;
+};
+
+const getRelativeTime = (date: Date): string => {
+  const now = Date.now();
+  const timestamp = new Date(date).getTime();
+  const diffMs = now - timestamp;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  // Use fixed date format to avoid locale issues
+  const d = new Date(date);
+  const month = MONTHS[d.getMonth()].slice(0, 3);
+  const day = d.getDate();
+  const year = d.getFullYear();
+  const currentYear = new Date().getFullYear();
+  
+  return currentYear === year ? `${month} ${day}` : `${month} ${day}, ${year}`;
 };
 
 const Sidebar = ({ notes, selectedNoteId, onNoteSelect, onNewNote }: SidebarProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isExpanded, setIsExpanded] = useState<{ [key: string]: boolean }>({});
+  const [mounted, setMounted] = useState(false);
 
-  // Group notes by date
-  const groupedNotes = useMemo(() => {
-    const filtered = notes.filter(note =>
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Memoize filtered notes
+  const filteredNotes = useMemo(() => 
+    notes.filter(note =>
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.content.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    ),
+    [notes, searchQuery]
+  );
 
-    return filtered.reduce((groups: GroupedNotes, note) => {
-      const date = new Date(note.createdAt);
-      const month = `${getMonthName(date.getMonth())} ${date.getFullYear()}`;
-
+  // Memoize grouped notes with stable date formatting
+  const groupedNotes = useMemo(() => 
+    filteredNotes.reduce((groups: GroupedNotes, note) => {
+      const month = formatDate(note.createdAt);
       if (!groups[month]) {
         groups[month] = [];
       }
       groups[month].push(note);
       return groups;
-    }, {});
-  }, [notes, searchQuery]);
+    }, {}),
+    [filteredNotes]
+  );
 
-  const toggleGroup = (month: string) => {
+  const toggleExpand = useCallback((month: string) => {
     setIsExpanded(prev => ({
       ...prev,
       [month]: !prev[month]
     }));
-  };
+  }, []);
 
-  const formatUpdateTime = (date: Date): string => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    return date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-    });
-  };
+  // Don't render anything until mounted
+  if (!mounted) {
+    return <div className="flex flex-col h-full animate-pulse bg-gray-100" />;
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -100,7 +124,7 @@ const Sidebar = ({ notes, selectedNoteId, onNoteSelect, onNewNote }: SidebarProp
         {Object.entries(groupedNotes).map(([month, monthNotes]) => (
           <div key={month} className="mb-2">
             <button
-              onClick={() => toggleGroup(month)}
+              onClick={() => toggleExpand(month)}
               className="w-full px-4 py-2 flex items-center justify-between text-sm font-medium text-gray-600 hover:bg-gray-50"
             >
               <div className="flex items-center gap-2">
@@ -134,7 +158,7 @@ const Sidebar = ({ notes, selectedNoteId, onNoteSelect, onNewNote }: SidebarProp
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{note.title}</div>
                       <div className="text-xs text-gray-500 truncate">
-                        {formatUpdateTime(new Date(note.updatedAt))}
+                        {getRelativeTime(new Date(note.updatedAt))}
                       </div>
                     </div>
                   </button>
