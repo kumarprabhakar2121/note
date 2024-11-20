@@ -56,20 +56,20 @@ export default function AboutPage() {
         <div className="container mx-auto px-6">
           <div className="relative max-w-4xl mx-auto text-center">
             <div className="mb-12">
-              <div className="relative w-40 h-40 mx-auto mb-8">
+              <div className="relative w-48 h-48 mx-auto mb-8">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-indigo-500 rounded-full animate-pulse"></div>
-                <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-lg">
+                <div className="relative w-48 h-48 rounded-full overflow-hidden border-4 border-white shadow-lg">
                   <Image
                     src="https://avatars.githubusercontent.com/u/48206706?v=4"
                     alt="Prabhakar Kumar"
-                    width={160}
-                    height={160}
+                    width={192}
+                    height={192}
                     className="object-cover"
                   />
                 </div>
               </div>
               <h1 className="text-5xl font-bold text-gray-900 mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-                Hi, I&apos;m Prabhakar Kumar 👋
+                Hi, I&apos;m Prabhakar Kumar 
               </h1>
               <p className="text-xl text-gray-600 mb-4">Building digital experiences that make a difference</p>
               <div className="flex items-center justify-center gap-3 text-gray-500 mb-8">
@@ -114,17 +114,17 @@ export default function AboutPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">About Me</h2>
               <div className="space-y-4 text-gray-600 leading-relaxed">
                 <p>
-                  I'm a passionate software engineer based in Bengaluru, with a deep love for creating elegant solutions to complex problems.
+                  I&apos;m a passionate software engineer based in Bengaluru, with a deep love for creating elegant solutions to complex problems.
                   My journey in tech started with a curiosity about how things work, which evolved into a career building impactful digital experiences.
                 </p>
                 <p>
-                  When I'm not coding, you'll find me exploring new technologies, contributing to open-source projects, or sharing knowledge
+                  When I&apos;m not coding, you&apos;ll find me exploring new technologies, contributing to open-source projects, or sharing knowledge
                   with the developer community. I believe in the power of technology to transform ideas into reality and am constantly pushing
-                  the boundaries of what's possible.
+                  the boundaries of what&apos;s possible.
                 </p>
                 <p>
-                  Currently, I'm focused on building intuitive and efficient web applications that make a difference in people's lives.
-                  I'm particularly excited about the intersection of user experience and cutting-edge technology.
+                  Currently, I&apos;m focused on building intuitive and efficient web applications that make a difference in people&apos;s lives.
+                  I&apos;m particularly excited about the intersection of user experience and cutting-edge technology.
                 </p>
               </div>
             </div>
@@ -159,10 +159,10 @@ export default function AboutPage() {
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Let's Connect</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">Let&apos;s Connect</h2>
             <p className="text-gray-600 mb-8">
-              I'm always interested in hearing about new projects and opportunities.
-              Feel free to reach out if you'd like to collaborate or just chat about technology!
+              I&apos;m always interested in hearing about new projects and opportunities.
+              Feel free to reach out if you&apos;d like to collaborate or just chat about technology!
             </p>
             <div className="flex justify-center gap-4">
               <Link

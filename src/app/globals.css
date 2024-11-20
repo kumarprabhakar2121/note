@@ -10,7 +10,7 @@
   --editor-bg: #ffffff;
   --sidebar: #f8fafc;
   --border: #e2e8f0;
-  --border-light: #f1f5f9;
+  --border-light: #e5e7eb;
   --text-primary: #1e293b;
   --text-secondary: #64748b;
 }
@@ -41,58 +41,75 @@ body {
 
 /* Editor Styles */
 .ProseMirror {
-  min-height: 500px;
-  max-height: calc(100vh - 200px);
-  height: 100%;
-  padding: 2.5rem;
-  transition: all 0.2s ease;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-}
+  @apply w-full min-h-[500px] outline-none px-16 py-12 bg-white rounded-xl;
+  width: 100% !important;
 
-.ProseMirror::-webkit-scrollbar {
-  width: 6px;
-}
+  &:focus {
+    @apply shadow-[0_4px_16px_-4px_rgba(0,0,0,0.1)] transition-all duration-300;
+  }
 
-.ProseMirror::-webkit-scrollbar-track {
-  background: transparent;
-}
+  > * + * {
+    margin-top: 1em;
+  }
+  
+  ul, ol {
+    @apply pl-6 my-4;
+  }
 
-.ProseMirror::-webkit-scrollbar-thumb {
-  background-color: var(--border);
-  border-radius: 3px;
-}
+  h1, h2, h3, h4, h5, h6 {
+    @apply leading-relaxed;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+  }
 
-.ProseMirror:focus {
-  outline: none;
-  background-color: rgba(255, 255, 255, 0.8);
-}
+  p {
+    @apply leading-relaxed my-4;
+  }
 
-@media (min-width: 768px) {
-  .ProseMirror {
-    min-height: 500px;
-    max-height: calc(100vh - 220px);
-    padding: 3rem;
+  code {
+    @apply bg-gray-50/80 text-gray-700 rounded-md px-1.5 py-0.5;
+  }
+
+  pre {
+    @apply bg-gray-50 text-gray-800 rounded-xl p-6 my-6;
+    
+    code {
+      @apply bg-transparent text-inherit p-0 text-sm;
+    }
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    @apply rounded-xl my-6;
+  }
+
+  blockquote {
+    @apply pl-6 border-l-2 border-gray-200 text-gray-600 italic my-6 py-1;
+  }
+
+  hr {
+    @apply border-0 border-t border-gray-100 my-8;
   }
 }
 
-.ProseMirror p {
-  margin: 1em 0;
-  line-height: 1.75;
-  color: var(--text-primary);
+/* Override any max-width constraints */
+.prose {
+  max-width: none !important;
+  width: 100% !important;
+  @apply text-gray-700 leading-relaxed;
 }
 
-.ProseMirror > * + * {
-  margin-top: 1em;
+.ProseMirror-focused {
+  width: 100% !important;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
-  color: var(--text-secondary);
+  @apply text-gray-400;
   content: attr(data-placeholder);
   float: left;
-  pointer-events: none;
   height: 0;
+  pointer-events: none;
 }
 
 /* Prose Styles */
@@ -100,8 +117,6 @@ body {
   font-size: 1.125rem;
   line-height: 1.8;
   color: var(--text-primary);
-  max-width: none !important;
-  width: 100%;
 }
 
 .prose > * {

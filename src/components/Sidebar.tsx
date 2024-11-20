@@ -7,7 +7,7 @@ import { Plus, FileText, Search, Calendar } from 'react-feather';
 interface SidebarProps {
   notes: Note[];
   selectedNoteId: string | null;
-  onNoteSelect: (id: string) => void;
+  onNoteSelect: (noteId: string) => void;
   onNewNote: () => void;
 }
 
@@ -51,7 +51,12 @@ const getRelativeTime = (date: Date): string => {
   return currentYear === year ? `${month} ${day}` : `${month} ${day}, ${year}`;
 };
 
-const Sidebar = ({ notes, selectedNoteId, onNoteSelect, onNewNote }: SidebarProps) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  notes,
+  selectedNoteId,
+  onNoteSelect,
+  onNewNote,
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isExpanded, setIsExpanded] = useState<{ [key: string]: boolean }>({});
   const [mounted, setMounted] = useState(false);

@@ -24,55 +24,43 @@ import {
   Code2,
   Type,
 } from 'lucide-react';
+import { LucideIcon } from 'lucide-react';
 
-const SUPPORTED_LANGUAGES = [
-  'bash',
-  'c',
-  'cpp',
-  'csharp',
-  'css',
-  'diff',
-  'go',
-  'graphql',
-  'ini',
-  'java',
-  'javascript',
-  'json',
-  'kotlin',
-  'less',
-  'lua',
-  'makefile',
-  'markdown',
-  'objectivec',
-  'perl',
-  'php',
-  'python',
-  'r',
-  'ruby',
-  'rust',
-  'scss',
-  'shell',
-  'sql',
-  'swift',
-  'typescript',
-  'yaml',
-  'xml'
+interface FontOption {
+  label: string;
+  value: string;
+}
+
+interface ToolbarButtonProps {
+  onClick: () => void;
+  active?: boolean;
+  disabled?: boolean;
+  children: React.ReactNode;
+  title?: string;
+}
+
+interface ToolbarSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: FontOption[];
+  disabled?: boolean;
+  label?: string;
+}
+
+const FONT_FAMILIES: FontOption[] = [
+  { label: 'Default', value: '' },
+  { label: 'Inter', value: 'Inter' },
+  { label: 'Roboto', value: 'Roboto' },
+  { label: 'Open Sans', value: 'Open Sans' },
+  { label: 'Lato', value: 'Lato' },
+  { label: 'Poppins', value: 'Poppins' },
+  { label: 'Playfair Display', value: 'Playfair Display' },
+  { label: 'Merriweather', value: 'Merriweather' },
+  { label: 'Source Code Pro', value: 'Source Code Pro' },
+  { label: 'Fira Code', value: 'Fira Code' },
 ];
 
-const FONT_FAMILIES = [
-  { name: 'Default', value: '' },
-  { name: 'Inter', value: 'Inter' },
-  { name: 'Roboto', value: 'Roboto' },
-  { name: 'Open Sans', value: 'Open Sans' },
-  { name: 'Lato', value: 'Lato' },
-  { name: 'Poppins', value: 'Poppins' },
-  { name: 'Playfair Display', value: 'Playfair Display' },
-  { name: 'Merriweather', value: 'Merriweather' },
-  { name: 'Source Code Pro', value: 'Source Code Pro' },
-  { name: 'Fira Code', value: 'Fira Code' },
-];
-
-const FONT_SIZES = [
+const FONT_SIZES: FontOption[] = [
   { label: 'Small', value: '12px' },
   { label: 'Medium', value: '14px' },
   { label: 'Large', value: '16px' },
@@ -81,7 +69,7 @@ const FONT_SIZES = [
   { label: 'Giant', value: '32px' },
 ];
 
-const ToolbarButton = ({ onClick, active = false, disabled = false, children, title }: any) => (
+const ToolbarButton = ({ onClick, active = false, disabled = false, children, title }: ToolbarButtonProps) => (
   <button
     onClick={onClick}
     disabled={disabled}
@@ -96,20 +84,23 @@ const ToolbarButton = ({ onClick, active = false, disabled = false, children, ti
   </button>
 );
 
-const ToolbarSelect = ({ value, onChange, options, disabled = false, title }: any) => (
-  <select
-    value={value}
-    onChange={(e) => onChange(e.target.value)}
-    disabled={disabled}
-    title={title}
-    className="px-3 py-2 rounded-lg border border-gray-200 text-sm bg-white hover:bg-gray-50 transition-all min-w-[160px] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-opacity-50"
-  >
-    {options.map((option: any) => (
-      <option key={option.value || option} value={option.value || option}>
-        {option.label || option.name || option}
-      </option>
-    ))}
-  </select>
+const ToolbarSelect = ({ value, onChange, options, disabled = false, label }: ToolbarSelectProps) => (
+  <div className="flex flex-col">
+    {label && <label className="text-xs text-gray-500 mb-1">{label}</label>}
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      aria-label={label}
+      className="h-8 px-2 text-sm rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </div>
 );
 
 interface EditorToolbarProps {
@@ -144,7 +135,7 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
           <Type size={18} className="text-gray-400 shrink-0" />
           <ToolbarSelect
             value={editor.getAttributes('textStyle').fontFamily || ''}
-            onChange={(value: string) => {
+            onChange={(value) => {
               if (value) {
                 editor.chain().focus().setFontFamily(value).run();
               } else {
@@ -152,7 +143,7 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
               }
             }}
             options={FONT_FAMILIES}
-            title="Font Family"
+            label="Font Family"
           />
         </div>
 
@@ -160,7 +151,7 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
           <Type size={18} className="text-gray-400 shrink-0" />
           <ToolbarSelect
             value={editor.getAttributes('textStyle').fontSize || '16px'}
-            onChange={(value: string) => {
+            onChange={(value) => {
               if (value === '16px') {
                 editor.chain()
                   .focus()
@@ -175,7 +166,7 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
               }
             }}
             options={FONT_SIZES}
-            title="Font Size"
+            label="Font Size"
           />
         </div>
 
@@ -251,7 +242,7 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
               <ListOrdered size={18} />
             </ToolbarButton>
             <ToolbarButton
-              onClick={() => editor.chain().focus().toggleList('taskList').run()}
+              onClick={() => editor.chain().focus().toggleTaskList().run()}
               active={editor.isActive('taskList')}
               title="Task List"
             >
@@ -340,8 +331,41 @@ const EditorToolbar = ({ editor }: EditorToolbarProps) => {
                     .setCodeBlock({ language })
                     .run()
                 }
-                options={SUPPORTED_LANGUAGES}
-                title="Select Language"
+                options={[
+                  { label: 'Plain Text', value: 'plaintext' },
+                  { label: 'Bash', value: 'bash' },
+                  { label: 'C', value: 'c' },
+                  { label: 'C++', value: 'cpp' },
+                  { label: 'C#', value: 'csharp' },
+                  { label: 'CSS', value: 'css' },
+                  { label: 'Diff', value: 'diff' },
+                  { label: 'Go', value: 'go' },
+                  { label: 'GraphQL', value: 'graphql' },
+                  { label: 'INI', value: 'ini' },
+                  { label: 'Java', value: 'java' },
+                  { label: 'JavaScript', value: 'javascript' },
+                  { label: 'JSON', value: 'json' },
+                  { label: 'Kotlin', value: 'kotlin' },
+                  { label: 'Less', value: 'less' },
+                  { label: 'Lua', value: 'lua' },
+                  { label: 'Makefile', value: 'makefile' },
+                  { label: 'Markdown', value: 'markdown' },
+                  { label: 'Objective-C', value: 'objectivec' },
+                  { label: 'Perl', value: 'perl' },
+                  { label: 'PHP', value: 'php' },
+                  { label: 'Python', value: 'python' },
+                  { label: 'R', value: 'r' },
+                  { label: 'Ruby', value: 'ruby' },
+                  { label: 'Rust', value: 'rust' },
+                  { label: 'SCSS', value: 'scss' },
+                  { label: 'Shell', value: 'shell' },
+                  { label: 'SQL', value: 'sql' },
+                  { label: 'Swift', value: 'swift' },
+                  { label: 'TypeScript', value: 'typescript' },
+                  { label: 'YAML', value: 'yaml' },
+                  { label: 'XML', value: 'xml' },
+                ]}
+                label="Select Language"
               />
             )}
           </div>

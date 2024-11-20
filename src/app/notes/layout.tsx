@@ -58,7 +58,7 @@ export default function NotesLayout({
   }
 
   const selectedNoteId = pathname.startsWith('/notes/') 
-    ? pathname.split('/').pop() 
+    ? pathname.split('/notes/')[1] 
     : null;
 
   return (

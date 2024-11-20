@@ -56,7 +56,7 @@ export default function Home() {
             </div>
             <h3 className="text-xl font-semibold mb-4">Easy Sharing</h3>
             <p className="text-gray-600">
-              Share your notes with others or keep them private - you're in control.
+              Share your notes with others or keep them private - you&apos;re in control.
             </p>
           </div>
         </div>

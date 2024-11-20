@@ -1,28 +1,30 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEditor, EditorContent, Editor as TiptapEditor } from '@tiptap/react';
+import { AlertCircle, ArrowUp, Eye, Edit2 } from 'lucide-react';
 import StarterKit from '@tiptap/starter-kit';
-import TextStyle from '@tiptap/extension-text-style';
-import { Extension } from '@tiptap/core';
-import Highlight from '@tiptap/extension-highlight';
-import Typography from '@tiptap/extension-typography';
+import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Superscript from '@tiptap/extension-superscript';
 import Subscript from '@tiptap/extension-subscript';
-import Link from '@tiptap/extension-link';
-import Image from '@tiptap/extension-image';
-import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
-import { common, createLowlight } from 'lowlight';
+import TextStyle from '@tiptap/extension-text-style';
 import FontFamily from '@tiptap/extension-font-family';
+import Highlight from '@tiptap/extension-highlight';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Link from '@tiptap/extension-link';
 import Table from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
-import Underline from '@tiptap/extension-underline';
-import { ArrowUp, Eye, Edit2, AlertCircle } from 'lucide-react';
+import Image from '@tiptap/extension-image';
+import { Color } from '@tiptap/extension-color';
+import { Note } from '@/types/note';
 import { ErrorBoundary } from './ErrorBoundary';
 import EditorToolbar from './EditorToolbar';
+import { Extension } from '@tiptap/core';
+import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
+import { common, createLowlight } from 'lowlight';
+import Typography from '@tiptap/extension-typography';
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
@@ -96,17 +98,11 @@ const FontSize = Extension.create({
 });
 
 interface EditorProps {
-  note: {
-    id: string;
-    title: string;
-    content: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-  onUpdate: (note: any) => void;
+  note: Note;
+  onUpdate: (note: Note) => void;
   onDelete: () => void;
   isDirty: boolean;
-  onChange?: () => void;
+  onChange: () => void;
 }
 
 const ErrorFallback = ({ error, resetEditor }: { error: Error; resetEditor: () => void }) => (
@@ -125,24 +121,12 @@ const ErrorFallback = ({ error, resetEditor }: { error: Error; resetEditor: () =
   </div>
 );
 
-const Editor = ({ note, onUpdate, onDelete, isDirty, onChange }: EditorProps) => {
+const Editor: React.FC<EditorProps> = ({ note, onUpdate, onDelete, isDirty, onChange }) => {
   const [isEditMode, setIsEditMode] = useState(true);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(note?.title || '');
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [editorError, setEditorError] = useState<Error | null>(null);
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  const titleInputRef = useRef<HTMLInputElement>(null);
-
-  const handleScroll = useCallback((event: Event) => {
-    const target = event.target as HTMLDivElement;
-    setShowScrollTop(target.scrollTop > 100);
-  }, []);
-
-  const handleEditorError = (error: Error) => {
-    console.error('Editor error:', error);
-    setEditorError(error);
-  };
 
   const editor = useEditor({
     extensions: [
@@ -151,34 +135,29 @@ const Editor = ({ note, onUpdate, onDelete, isDirty, onChange }: EditorProps) =>
           levels: [1, 2, 3],
         },
       }),
-      Typography,
+      TextStyle,
+      FontFamily,
+      Color,
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
       Highlight.configure({
         multicolor: true,
       }),
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-        alignments: ['left', 'center', 'right', 'justify'],
-      }),
-      Superscript,
-      Subscript,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-blue-500 hover:text-blue-600 underline',
+          class: 'cursor-pointer text-blue-500 hover:underline',
         },
       }),
       Image.configure({
-        inline: true,
-        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-lg',
+        },
       }),
-      CodeBlockLowlight.configure({
-        lowlight,
-        defaultLanguage: 'plaintext',
-      }),
-      TextStyle.configure(),
-      FontFamily,
-      FontSize.configure({
-        types: ['textStyle'],
+      TaskList,
+      TaskItem.configure({
+        nested: true,
       }),
       Table.configure({
         resizable: true,
@@ -186,211 +165,151 @@ const Editor = ({ note, onUpdate, onDelete, isDirty, onChange }: EditorProps) =>
       TableRow,
       TableHeader,
       TableCell,
-      TaskList,
-      TaskItem,
+      CodeBlockLowlight.configure({
+        lowlight,
+      }),
+      Typography,
       Underline,
+      Superscript,
+      Subscript,
     ],
-    content: note.content,
+    content: note.content || '<p></p>',
+    editable: true,
+    autofocus: 'end',
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose-lg lg:prose-xl mx-auto focus:outline-none',
+        class: 'prose max-w-none w-full focus:outline-none min-h-[calc(100vh-10rem)] h-full',
+        spellcheck: 'false',
       },
     },
-    onUpdate: ({ editor }) => {
-      try {
-        const content = editor.getHTML();
-        onChange?.();
-        onUpdate({ ...note, content });
-      } catch (error) {
-        handleEditorError(error as Error);
+    onTransaction: ({ editor }) => {
+      // Only set empty content if there's no content at all
+      if (editor.isEmpty && !editor.isActive('paragraph')) {
+        editor.commands.clearContent();
+        editor.commands.setContent('<p></p>');
       }
+    },
+    onUpdate: ({ editor }) => {
+      // Prevent update if content is just an empty paragraph
+      const content = editor.getHTML();
+      if (content === '<p></p>' && note.content === '<p></p>') {
+        return;
+      }
+      onChange();
+      onUpdate({
+        ...note,
+        content,
+        updatedAt: new Date().toISOString(),
+      });
     },
   });
 
-  const resetEditor = useCallback(() => {
-    if (!editor) return;
-
-    try {
-      setEditorError(null);
-      editor.commands.clearContent();
-      editor.commands.setContent(note.content);
-    } catch (error) {
-      handleEditorError(error as Error);
-    }
-  }, [editor, note.content]);
-
-  // Handle content updates
+  // Sync content with note changes
   useEffect(() => {
-    if (!editor || !note?.content) return;
-
-    try {
+    if (editor && note?.content && !editor.isDestroyed) {
       const currentContent = editor.getHTML();
       if (currentContent !== note.content) {
         editor.commands.setContent(note.content);
       }
-    } catch (error) {
-      handleEditorError(error as Error);
     }
-  }, [note?.content]);
+  }, [editor, note]);
 
-  // Handle scroll behavior
   useEffect(() => {
     const container = editorContainerRef.current;
     if (container) {
+      const handleScroll = () => {
+        setShowScrollTop(container.scrollTop > 100);
+      };
       container.addEventListener('scroll', handleScroll);
       return () => container.removeEventListener('scroll', handleScroll);
     }
-  }, [handleScroll]);
-
-  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setTitleValue(e.target.value);
-    } catch (error) {
-      handleEditorError(error as Error);
-    }
   }, []);
-
-  const handleTitleBlur = useCallback(() => {
-    try {
-      setIsEditingTitle(false);
-      if (titleValue !== note.title) {
-        onUpdate({ ...note, title: titleValue });
-      }
-    } catch (error) {
-      handleEditorError(error as Error);
-    }
-  }, [titleValue, note, onUpdate]);
-
-  const handleTitleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      titleInputRef.current?.blur();
-    }
-  }, []);
-
-  const handleTitleClick = () => {
-    if (isEditMode) {
-      setIsEditingTitle(true);
-      setTimeout(() => {
-        titleInputRef.current?.focus();
-        titleInputRef.current?.select();
-      }, 0);
-    }
-  };
-
-  const toggleEditMode = () => {
-    setIsEditMode(!isEditMode);
-    editor?.setEditable(!isEditMode);
-  };
-
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
-      onDelete();
-    }
-  };
 
   const scrollToTop = () => {
     editorContainerRef.current?.scrollTo({
       top: 0,
-      behavior: 'smooth'
+      behavior: 'smooth',
     });
   };
 
-  if (editorError) {
-    return <ErrorFallback error={editorError} resetEditor={resetEditor} />;
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setTitleValue(newTitle);
+    onChange();
+    onUpdate({
+      ...note,
+      title: newTitle,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setIsEditingTitle(false);
+    }
+  };
+
+  if (!editor) {
+    return null;
   }
 
   return (
-    <ErrorBoundary>
-      <div className="h-full flex flex-col bg-white">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-[var(--border-light)] bg-gray-50/30">
-          <div className="flex items-center ml-20 gap-4 p-4 sm:p-6">
-            {isEditingTitle ? (
-              <input
-                ref={titleInputRef}
-                type="text"
-                value={titleValue}
-                onChange={handleTitleChange}
-                onBlur={handleTitleBlur}
-                onKeyDown={handleTitleKeyDown}
-                className="text-xl font-semibold text-gray-800 bg-white border border-[var(--primary)] rounded px-2 py-1 focus:outline-none"
-                placeholder="Note title"
-              />
-            ) : (
-              <h2
-                onClick={handleTitleClick}
-                className={`text-xl font-semibold text-gray-800 ${isEditMode ? 'cursor-pointer hover:text-[var(--primary)]' : 'cursor-default'} transition-colors`}
-              >
-                {note?.title || 'Untitled'}
-              </h2>
-            )}
-            {isDirty && (
-              <span className="text-sm bg-yellow-50 text-yellow-700 px-2.5 py-1 rounded-full flex items-center">
-                <span className="inline-block w-1.5 h-1.5 rounded-full bg-yellow-500 mr-1.5"></span>
-                Unsaved changes
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3 px-4 sm:px-6 pb-4 sm:pb-0 w-full sm:w-auto">
-            <button
-              onClick={toggleEditMode}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2 border border-[var(--border-light)]"
-              title={isEditMode ? "Switch to preview mode" : "Switch to edit mode"}
-            >
-              {isEditMode ? (
-                <>
-                  <Eye className="w-4 h-4" />
-                  <span>Preview</span>
-                </>
-              ) : (
-                <>
-                  <Edit2 className="w-4 h-4" />
-                  <span>Edit</span>
-                </>
-              )}
-            </button>
-            <button
-              onClick={handleDelete}
-              className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full sm:w-auto border border-red-200"
-            >
-              Delete Note
-            </button>
-            <button
-              onClick={() => onUpdate({ ...note })}
-              disabled={!isDirty}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors w-full sm:w-auto ${
-                isDirty
-                  ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary-dark)] border border-transparent'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
-              }`}
-            >
-              {isDirty ? 'Save Changes' : 'Saved'}
-            </button>
-          </div>
-        </div>
-        {isEditMode && <EditorToolbar editor={editor} />}
-        <div
-          ref={editorContainerRef}
-          className="flex-1 overflow-y-auto bg-gray-50/50 w-full relative p-4 sm:p-6"
-        >
-          <div className="h-full w-full max-w-[95%] xl:max-w-[90%] mx-auto bg-white rounded-xl shadow-sm">
-            <EditorContent
-              editor={editor}
-              className="min-h-[500px] w-full prose prose-base sm:prose-lg lg:prose-xl prose-slate prose-headings:font-display rounded-lg border border-[var(--border-light)] transition-all duration-200"
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-white">
+        <div className="flex items-center flex-1">
+          {isEditingTitle ? (
+            <input
+              type="text"
+              value={titleValue}
+              onChange={handleTitleChange}
+              onKeyDown={handleTitleKeyDown}
+              onBlur={() => setIsEditingTitle(false)}
+              className="flex-1 text-xl font-semibold bg-transparent border-none focus:outline-none focus:ring-0"
+              autoFocus
             />
-          </div>
-          {showScrollTop && (
-            <button
-              onClick={scrollToTop}
-              className="fixed bottom-8 right-8 p-3 bg-white rounded-full shadow-lg border border-[var(--border-light)] hover:shadow-xl transition-all duration-200 hover:border-[var(--primary)] group"
-              aria-label="Scroll to top"
+          ) : (
+            <h1
+              className="text-xl font-semibold cursor-pointer"
+              onClick={() => setIsEditingTitle(true)}
             >
-              <ArrowUp className="w-5 h-5 text-gray-600 group-hover:text-[var(--primary)]" />
-            </button>
+              {titleValue}
+            </h1>
           )}
         </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsEditMode(!isEditMode)}
+            className="p-2 text-gray-500 hover:text-gray-700"
+            title={isEditMode ? 'Preview' : 'Edit'}
+          >
+            {isEditMode ? <Eye size={20} /> : <Edit2 size={20} />}
+          </button>
+        </div>
       </div>
-    </ErrorBoundary>
+
+      <EditorToolbar editor={editor} />
+
+      <div
+        ref={editorContainerRef}
+        className="flex-1 overflow-y-auto bg-gray-50/50"
+      >
+        <div className="h-full w-[95%] mx-auto p-8">
+          <ErrorBoundary>
+            <EditorContent editor={editor} className="w-full min-h-[500px]" />
+          </ErrorBoundary>
+        </div>
+
+        {showScrollTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-4 right-4 p-2 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
+            title="Scroll to top"
+          >
+            <ArrowUp size={20} />
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
 

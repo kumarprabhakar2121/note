@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -33,7 +33,7 @@ export default function NotePage() {
     setMounted(true);
   }, [noteId]);
 
-  const updateNote = (updatedNote: Note) => {
+  const updateNote = useCallback((updatedNote: Note) => {
     const savedNotes = localStorage.getItem('notes');
     if (savedNotes) {
       const notes: Note[] = JSON.parse(savedNotes);
@@ -46,7 +46,7 @@ export default function NotePage() {
       setNote(updatedNote);
       setIsDirty(false);
     }
-  };
+  }, []);
 
   const deleteNote = () => {
     const savedNotes = localStorage.getItem('notes');
