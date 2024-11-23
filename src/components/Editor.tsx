@@ -1,101 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useEditor, EditorContent, Editor as TiptapEditor } from '@tiptap/react';
-import { AlertCircle, ArrowUp, Eye, Edit2 } from 'lucide-react';
-import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import TextAlign from '@tiptap/extension-text-align';
-import Superscript from '@tiptap/extension-superscript';
-import Subscript from '@tiptap/extension-subscript';
-import TextStyle from '@tiptap/extension-text-style';
-import FontFamily from '@tiptap/extension-font-family';
-import Highlight from '@tiptap/extension-highlight';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
-import Link from '@tiptap/extension-link';
-import Table from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import Image from '@tiptap/extension-image';
-import { Color } from '@tiptap/extension-color';
+import React from 'react';
+import { Editor as TinyMCEEditor } from '@tinymce/tinymce-react';
+import type { IAllProps } from '@tinymce/tinymce-react';
+import { ArrowUp, Check } from 'lucide-react';
+import type { Editor as TinyMCEEditorType } from 'tinymce';
 import { Note } from '@/types/note';
 import { ErrorBoundary } from './ErrorBoundary';
-import EditorToolbar from './EditorToolbar';
-import { Extension } from '@tiptap/core';
-import { CodeBlockLowlight } from '@tiptap/extension-code-block-lowlight';
-import { common, createLowlight } from 'lowlight';
-import Typography from '@tiptap/extension-typography';
-
-declare module '@tiptap/core' {
-  interface Commands<ReturnType> {
-    fontSize: {
-      /**
-       * Set the font size
-       */
-      setFontSize: (size: string) => ReturnType;
-      /**
-       * Unset the font size
-       */
-      unsetFontSize: () => ReturnType;
-    };
-  }
-}
-
-const lowlight = createLowlight(common);
-
-// Custom extension for font size
-const FontSize = Extension.create({
-  name: 'fontSize',
-
-  addOptions() {
-    return {
-      types: ['textStyle'],
-      defaultSize: '16px',
-    };
-  },
-
-  addGlobalAttributes() {
-    return [
-      {
-        types: ['textStyle'],
-        attributes: {
-          fontSize: {
-            default: null,
-            parseHTML: element => element.style.fontSize,
-            renderHTML: attributes => {
-              if (!attributes.fontSize) {
-                return {};
-              }
-              return {
-                style: `font-size: ${attributes.fontSize}`,
-              };
-            },
-          },
-        },
-      },
-    ];
-  },
-
-  addCommands() {
-    return {
-      setFontSize:
-        (fontSize: string) =>
-        ({ chain, state }) => {
-          return chain()
-            .setMark('textStyle', { fontSize })
-            .run();
-        },
-      unsetFontSize:
-        () =>
-        ({ chain }) => {
-          return chain()
-            .setMark('textStyle', { fontSize: null })
-            .removeEmptyTextStyle()
-            .run();
-        },
-    };
-  },
-});
 
 interface EditorProps {
   note: Note;
@@ -105,116 +14,140 @@ interface EditorProps {
   onChange: () => void;
 }
 
-const ErrorFallback = ({ error, resetEditor }: { error: Error; resetEditor: () => void }) => (
-  <div className="flex flex-col items-center justify-center h-full p-6 bg-red-50">
-    <AlertCircle className="w-12 h-12 mb-4 text-red-500" />
-    <h3 className="text-lg font-semibold text-red-800 mb-2">Editor Error</h3>
-    <p className="text-sm text-red-600 text-center mb-4">
-      {error.message || 'There was an error loading the editor'}
-    </p>
-    <button
-      onClick={resetEditor}
-      className="px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
-    >
-      Reset Editor
-    </button>
-  </div>
-);
+const Editor = ({ note, onUpdate, onDelete, isDirty, onChange }: EditorProps) => {
+  const [isEditingTitle, setIsEditingTitle] = React.useState(false);
+  const [titleValue, setTitleValue] = React.useState(note?.title || '');
+  const [showScrollTop, setShowScrollTop] = React.useState(false);
+  const [showSaveIndicator, setShowSaveIndicator] = React.useState(false);
+  const [isEditorReady, setIsEditorReady] = React.useState(false);
+  const editorContainerRef = React.useRef<HTMLDivElement>(null);
+  const editorRef = React.useRef<TinyMCEEditorType | null>(null);
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const contentRef = React.useRef(note.content);
+  const initialLoadRef = React.useRef(true);
 
-const Editor: React.FC<EditorProps> = ({ note, onUpdate, onDelete, isDirty, onChange }) => {
-  const [isEditMode, setIsEditMode] = useState(true);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [titleValue, setTitleValue] = useState(note?.title || '');
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const editorContainerRef = useRef<HTMLDivElement>(null);
-
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
-      TextStyle,
-      FontFamily,
-      Color,
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-      }),
-      Highlight.configure({
-        multicolor: true,
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'cursor-pointer text-blue-500 hover:underline',
-        },
-      }),
-      Image.configure({
-        HTMLAttributes: {
-          class: 'max-w-full h-auto rounded-lg',
-        },
-      }),
-      TaskList,
-      TaskItem.configure({
-        nested: true,
-      }),
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      CodeBlockLowlight.configure({
-        lowlight,
-      }),
-      Typography,
-      Underline,
-      Superscript,
-      Subscript,
-    ],
-    content: note.content || '<p></p>',
-    editable: true,
-    autofocus: 'end',
-    editorProps: {
-      attributes: {
-        class: 'prose max-w-none w-full focus:outline-none min-h-[calc(100vh-10rem)] h-full',
-        spellcheck: 'false',
-      },
-    },
-    onTransaction: ({ editor }) => {
-      // Only set empty content if there's no content at all
-      if (editor.isEmpty && !editor.isActive('paragraph')) {
-        editor.commands.clearContent();
-        editor.commands.setContent('<p></p>');
-      }
-    },
-    onUpdate: ({ editor }) => {
-      // Prevent update if content is just an empty paragraph
-      const content = editor.getHTML();
-      if (content === '<p></p>' && note.content === '<p></p>') {
-        return;
-      }
-      onChange();
-      onUpdate({
-        ...note,
-        content,
-        updatedAt: new Date().toISOString(),
-      });
-    },
-  });
-
-  // Sync content with note changes
-  useEffect(() => {
-    if (editor && note?.content && !editor.isDestroyed) {
-      const currentContent = editor.getHTML();
-      if (currentContent !== note.content) {
-        editor.commands.setContent(note.content);
+  // Load note from localStorage on mount
+  React.useEffect(() => {
+    const savedNote = localStorage.getItem(`note_${note.id}`);
+    if (savedNote) {
+      try {
+        const parsedNote = JSON.parse(savedNote);
+        setTitleValue(parsedNote.title);
+        contentRef.current = parsedNote.content;
+        if (editorRef.current && isEditorReady) {
+          editorRef.current.setContent(parsedNote.content || '');
+        }
+        onUpdate(parsedNote);
+      } catch (error) {
+        console.error('Error loading note from localStorage:', error);
       }
     }
-  }, [editor, note]);
+  }, [note.id, isEditorReady, onUpdate]);
 
-  useEffect(() => {
+  // Update local state when note prop changes
+  React.useEffect(() => {
+    if (isEditorReady && editorRef.current) {
+      setTitleValue(note.title);
+
+      const currentContent = editorRef.current.getContent();
+      if (currentContent !== note.content) {
+        try {
+          editorRef.current.setContent(note.content || '');
+        } catch (error) {
+          console.error('Error updating editor content:', error);
+        }
+      }
+
+      contentRef.current = note.content;
+    }
+  }, [note, isEditorReady]);
+
+  const showSavedMessage = React.useCallback(() => {
+    setShowSaveIndicator(true);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(() => {
+      setShowSaveIndicator(false);
+    }, 2000);
+  }, []);
+
+  const saveNote = React.useCallback((updatedNote: Partial<Note>) => {
+    const newNote = {
+      ...note,
+      ...updatedNote,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Update parent component
+    onUpdate(newNote);
+    onChange();
+
+    // Save to localStorage
+    try {
+      localStorage.setItem(`note_${note.id}`, JSON.stringify(newNote));
+      console.log('Note saved to localStorage:', newNote);
+      showSavedMessage();
+    } catch (error) {
+      console.error('Error saving note to localStorage:', error);
+    }
+  }, [note, onUpdate, onChange, showSavedMessage]);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTitle = e.target.value;
+    setTitleValue(newTitle);
+    saveNote({ title: newTitle });
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setIsEditingTitle(false);
+    }
+  };
+
+  const handleEditorChange = (content: string) => {
+    if (content !== contentRef.current) {
+      contentRef.current = content;
+      saveNote({ content });
+    }
+  };
+
+  const handlePrint = () => {
+    if (editorRef.current) {
+      const content = editorRef.current.getContent();
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${titleValue}</title>
+              <style>
+                body {
+                  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+                  font-size: 14px;
+                  line-height: 1.5;
+                  padding: 20px;
+                }
+                img { max-width: 100%; height: auto; }
+                pre { background-color: #f4f4f4; padding: 1em; border-radius: 4px; }
+                table { border-collapse: collapse; width: 100%; }
+                table td, table th { border: 1px solid #ddd; padding: 8px; }
+              </style>
+            </head>
+            <body>
+              <h1>${titleValue}</h1>
+              ${content}
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
+    }
+  };
+
+  React.useEffect(() => {
     const container = editorContainerRef.current;
     if (container) {
       const handleScroll = () => {
@@ -232,26 +165,173 @@ const Editor: React.FC<EditorProps> = ({ note, onUpdate, onDelete, isDirty, onCh
     });
   };
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value;
-    setTitleValue(newTitle);
-    onChange();
-    onUpdate({
-      ...note,
-      title: newTitle,
-      updatedAt: new Date().toISOString(),
-    });
-  };
+  const editorConfig: NonNullable<IAllProps['init']> = {
+    height: 670,
+    menubar: false,
+    plugins: [
+      'lists', 'advlist', 'autolink', 'link',
+      'image', 'media', 'table', 'codesample',
+      'charmap', 'emoticons', 'pagebreak',
+      'visualchars', 'searchreplace', 'visualblocks',
+      'code', 'fullscreen', 'preview', 'wordcount', 'help'
+    ],
+    toolbar: [
+      'bold italic underline strikethrough | bullist numlist | alignleft aligncenter alignright alignjustify',
+      'formatselect | styles blocks | fontfamily fontsize lineheight | forecolor backcolor | superscript subscript | indent outdent | removeformat',
+      'link image media table codesample | charmap emoticons',
+      'undo redo | searchreplace | preview fullscreen customprint markdownhelp'
+    ].join(' | '),
+    setup: (editor: TinyMCEEditorType) => {
+      editorRef.current = editor;
 
-  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      setIsEditingTitle(false);
-    }
-  };
+      editor.ui.registry.addButton('customprint', {
+        icon: 'print',
+        tooltip: 'Print',
+        onAction: handlePrint
+      });
 
-  if (!editor) {
-    return null;
-  }
+      editor.ui.registry.addButton('markdownhelp', {
+        icon: 'help',
+        tooltip: 'Markdown Shortcuts',
+        onAction: () => {
+          editor.windowManager.open({
+            title: 'Markdown Shortcuts',
+            body: {
+              type: 'panel',
+              items: [{
+                type: 'htmlpanel',
+                html: `
+                  <div style="padding: 10px;">
+                    <h3>Available Shortcuts:</h3>
+                    <ul style="list-style-type: disc; margin-left: 20px;">
+                      <li># - Heading 1</li>
+                      <li>## - Heading 2</li>
+                      <li>### - Heading 3</li>
+                      <li>* - Bullet list</li>
+                      <li>1. - Numbered list</li>
+                      <li>> - Blockquote</li>
+                      <li>\`\`\` - Code block</li>
+                      <li>--- - Horizontal line</li>
+                      <li>__text__ - Bold</li>
+                      <li>_text_ - Italic</li>
+                      <li>~~text~~ - Strikethrough</li>
+                      <li>\`text\` - Inline code</li>
+                    </ul>
+                  </div>
+                `
+              }]
+            },
+            buttons: [{ type: 'cancel', text: 'Close' }]
+          });
+        }
+      });
+
+      editor.on('init', () => {
+        setIsEditorReady(true);
+      });
+
+      // Debounced save handler for continuous typing
+      let saveTimeout: NodeJS.Timeout;
+      const debouncedSave = () => {
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+        }
+        saveTimeout = setTimeout(() => {
+          const content = editor.getContent();
+          if (content !== contentRef.current) {
+            saveNote({ content });
+          }
+        }, 1000);
+      };
+
+      // Add save handlers for different events
+      editor.on('keyup', debouncedSave);
+      editor.on('paste', debouncedSave);
+      editor.on('cut', debouncedSave);
+      editor.on('change', debouncedSave);
+
+      // Cleanup on editor destroy
+      editor.on('remove', () => {
+        if (saveTimeout) {
+          clearTimeout(saveTimeout);
+        }
+        setIsEditorReady(false);
+      });
+
+      const patterns = [
+        { start: '# ', cmd: 'mceInsertContent', value: '<h1>$SELECTION</h1>' },
+        { start: '## ', cmd: 'mceInsertContent', value: '<h2>$SELECTION</h2>' },
+        { start: '### ', cmd: 'mceInsertContent', value: '<h3>$SELECTION</h3>' },
+        { start: '* ', cmd: 'InsertUnorderedList' },
+        { start: '1. ', cmd: 'InsertOrderedList' },
+        { start: '> ', format: 'blockquote' },
+        { start: '```', cmd: 'mceInsertContent', value: '<pre><code>$SELECTION</code></pre>' },
+        { start: '---', cmd: 'mceInsertContent', value: '<hr />' }
+      ];
+
+      editor.on('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          const node = editor.selection.getNode();
+          const text = node.textContent || '';
+          patterns.forEach(pattern => {
+            if (text.startsWith(pattern.start)) {
+              e.preventDefault();
+              const newText = text.substring(pattern.start.length);
+              if (pattern.cmd) {
+                editor.selection.setContent(newText);
+                editor.execCommand(pattern.cmd, false, pattern.value?.replace('$SELECTION', newText) || '');
+              } else if (pattern.format) {
+                editor.selection.setContent(newText);
+                editor.formatter.apply(pattern.format);
+              }
+            }
+          });
+        }
+      });
+    },
+    content_style: `
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      img { max-width: 100%; height: auto; }
+      pre { background-color: #f4f4f4; padding: 1em; border-radius: 4px; }
+      table { border-collapse: collapse; width: 100%; }
+      table td, table th { border: 1px solid #ddd; padding: 8px; }
+      .tox-toolbar__group {
+        padding: 4px 8px !important;
+        border-right: 1px solid #e2e8f0 !important;
+      }
+      .tox-toolbar__group:last-child {
+        border-right: none !important;
+      }
+      .tox-toolbar {
+        background: #f8fafc !important;
+        padding: 4px !important;
+      }
+      .tox-toolbar__primary {
+        border-bottom: 1px solid #e2e8f0 !important;
+      }
+      .tox-tbtn {
+        margin: 2px !important;
+      }
+      .tox-tbtn:hover {
+        background: #e2e8f0 !important;
+      }
+    `,
+    toolbar_mode: 'wrap' as const,
+    toolbar_sticky: true,
+    toolbar_location: 'top' as const,
+    statusbar: true,
+    resize: true,
+    branding: false,
+    promotion: false,
+    disabled: false,
+    browser_spellcheck: true,
+    auto_focus: true as const,
+    paste_data_images: true
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -276,18 +356,13 @@ const Editor: React.FC<EditorProps> = ({ note, onUpdate, onDelete, isDirty, onCh
             </h1>
           )}
         </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setIsEditMode(!isEditMode)}
-            className="p-2 text-gray-500 hover:text-gray-700"
-            title={isEditMode ? 'Preview' : 'Edit'}
-          >
-            {isEditMode ? <Eye size={20} /> : <Edit2 size={20} />}
-          </button>
-        </div>
+        {showSaveIndicator && (
+          <div className="flex items-center text-sm text-green-600 gap-1 transition-opacity duration-300">
+            <Check size={16} />
+            <span>Saved</span>
+          </div>
+        )}
       </div>
-
-      <EditorToolbar editor={editor} />
 
       <div
         ref={editorContainerRef}
@@ -295,20 +370,28 @@ const Editor: React.FC<EditorProps> = ({ note, onUpdate, onDelete, isDirty, onCh
       >
         <div className="h-full w-[95%] mx-auto p-8">
           <ErrorBoundary>
-            <EditorContent editor={editor} className="w-full min-h-[500px]" />
+            <TinyMCEEditor
+              apiKey="tedw2nu4kjgb57labcw2b1hs5h31ftwyygfx1ylb0h0aag71"
+              onInit={(_, editor) => {
+                editorRef.current = editor;
+                editor.setContent(note.content || '');
+              }}
+              init={editorConfig}
+              onEditorChange={handleEditorChange}
+            />
           </ErrorBoundary>
         </div>
-
-        {showScrollTop && (
-          <button
-            onClick={scrollToTop}
-            className="fixed bottom-4 right-4 p-2 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
-            title="Scroll to top"
-          >
-            <ArrowUp size={20} />
-          </button>
-        )}
       </div>
+
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-4 right-4 p-2 bg-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
+          title="Scroll to top"
+        >
+          <ArrowUp size={20} />
+        </button>
+      )}
     </div>
   );
 };

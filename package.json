@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tinymce/tinymce-react": "^5.1.1",
     "@tiptap/extension-code-block-lowlight": "^2.9.1",
     "@tiptap/extension-color": "^2.9.1",
     "@tiptap/extension-font-family": "^2.9.1",
@@ -41,6 +42,7 @@
     "react": "19.0.0-rc-66855b96-20241106",
     "react-dom": "19.0.0-rc-66855b96-20241106",
     "react-feather": "^2.0.10",
+    "tinymce": "^7.5.1",
     "uuid": "^11.0.3",
     "zustand": "^5.0.1"
   },
