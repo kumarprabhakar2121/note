@@ -34,7 +34,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="text-center p-6">
             <div className="w-16 h-16 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
-              <Layout className="w-8 h-8 text-blue-600" />
+              <Layout className="w-8 h-8 text-blue-600" suppressHydrationWarning={true} />
             </div>
             <h3 className="text-xl font-semibold mb-4">Clean Interface</h3>
             <p className="text-gray-600">
@@ -43,7 +43,7 @@ export default function Home() {
           </div>
           <div className="text-center p-6">
             <div className="w-16 h-16 mx-auto mb-6 bg-indigo-100 rounded-full flex items-center justify-center">
-              <Feather className="w-8 h-8 text-indigo-600" />
+              <Feather className="w-8 h-8 text-indigo-600" suppressHydrationWarning={true} />
             </div>
             <h3 className="text-xl font-semibold mb-4">Rich Text Editing</h3>
             <p className="text-gray-600">
@@ -52,7 +52,7 @@ export default function Home() {
           </div>
           <div className="text-center p-6">
             <div className="w-16 h-16 mx-auto mb-6 bg-purple-100 rounded-full flex items-center justify-center">
-              <Share2 className="w-8 h-8 text-purple-600" />
+              <Share2 className="w-8 h-8 text-purple-600" suppressHydrationWarning={true} />
             </div>
             <h3 className="text-xl font-semibold mb-4">Easy Sharing</h3>
             <p className="text-gray-600">
